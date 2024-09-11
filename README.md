@@ -5,3 +5,17 @@ If you wish to deploy this in your own environment you will need
 Terraform (v1.0+)
 AWS CLI configured with appropriate credentials
 Basic understanding of AWS WAF and Terraform
+
+To deploy the AWS WAF resources:
+
+Initialize Terraform:
+Copyterraform init
+
+Preview the changes:
+Copyterraform plan
+
+Apply the changes:
+Copyterraform apply
+
+To destroy the resources:
+Copyterraform destroy
