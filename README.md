@@ -1,0 +1,1 @@
+This project contains Terraform configurations to deploy and manage AWS WAF (Web Application Firewall) resources. AWS WAF helps protect your web applications from common web exploits that could affect application availability, compromise security, or consume excessive resources.
