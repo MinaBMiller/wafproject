@@ -9,13 +9,13 @@ Basic understanding of AWS WAF and Terraform
 To deploy the AWS WAF resources:
 
 Initialize Terraform:
-Copyterraform init
+terraform init
 
 Preview the changes:
-Copyterraform plan
+terraform plan
 
 Apply the changes:
-Copyterraform apply
+terraform apply
 
 To destroy the resources:
-Copyterraform destroy
+terraform destroy
