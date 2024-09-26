@@ -4,7 +4,7 @@ provider "aws" {
 
 # Create S3 bucket for static website
 resource "aws_s3_bucket" "static_website" {
-  bucket = "my-static-website"
+  bucket = var.bucket_name
   tags = {
     Name = var.bucket_name
   }
@@ -14,7 +14,7 @@ resource "aws_s3_bucket_website_configuration" "static_website" {
   bucket = aws_s3_bucket.static_website.id
 
   index_document {
-    suffix = "index.html"
+    suffix = "index-waf.html"
   }
 
   error_document {
@@ -46,8 +46,8 @@ resource "aws_s3_bucket_policy" "static_website_policy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid       = "AllowCloudFrontOAI"
-        Effect    = "Allow"
+        Sid    = "PublicReadGetObject"
+        Effect = "Allow"
         Principal = {
           AWS = aws_cloudfront_origin_access_identity.oai.iam_arn
         }
@@ -60,16 +60,16 @@ resource "aws_s3_bucket_policy" "static_website_policy" {
 
 # Create AWS WAF web ACL
 resource "aws_wafv2_web_acl" "static_website_waf" {
-  name        = "static-website-waf"
+  name        = "static-website-waf-${random_id.suffix.hex}"
   description = "WAF for static website"
-  scope       = "REGIONAL"
+  scope       = "CLOUDFRONT"
 
   tags = {
     Name = var.static_waf
   }
 
   default_action {
-    block {}
+    allow {}
   }
 
   rule {
@@ -93,7 +93,7 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
       sampled_requests_enabled   = false
     }
   }
-
+ 
   rule {
     name     = "AWSManagedRulesAnonymousIpList"
     priority = 2
@@ -117,26 +117,26 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
   }
 
   rule {
-    name     = "AWSManagedRulesCoreRuleSet"
-    priority = 3
+  name     = "AWSManagedRulesCommonRuleSet"
+  priority = 3
 
-    override_action {
+  override_action {
       count {}
     }
 
-    statement {
-      managed_rule_group_statement {
-        name        = "AWSManagedRulesCoreRuleSet"
-        vendor_name = "AWS"
-      }
-    }
-
-    visibility_config {
-      cloudwatch_metrics_enabled = false
-      metric_name                = "AWSManagedRulesCoreRuleSet"
-      sampled_requests_enabled   = false
+  statement {
+    managed_rule_group_statement {
+      name        = "AWSManagedRulesCommonRuleSet"
+      vendor_name = "AWS"
     }
   }
+
+  visibility_config {
+    cloudwatch_metrics_enabled = true
+    metric_name                = "AWSManagedRulesCommonRuleSet"
+    sampled_requests_enabled   = true
+  }
+}
 
   rule {
     name     = "AWSManagedRulesKnownBadInputsRuleSet"
@@ -162,14 +162,14 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
 
   # Add 3 custom rules here
 
-# Rule 1: Block requests from specific IP addresses
+  # Rule 1: Block requests from specific IP addresses
 
   rule {
     name     = "block-specific-ips"
     priority = 5
 
     action {
-      block {}
+      count {}
     }
 
     statement {
@@ -185,9 +185,9 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
     }
   }
 
-# Rule 2: Rate limit requests based on IP
+  # Rule 2: Rate limit requests based on IP
 
-   rule {
+  rule {
     name     = "rate-limit-ips"
     priority = 6
 
@@ -209,8 +209,8 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
     }
   }
 
-# Rule 3: Geo-blocking (block requests from specific countries)
-  
+  # Rule 3: Geo-blocking (block requests from specific countries)
+
   rule {
     name     = "geo-block-countries"
     priority = 7
@@ -239,11 +239,15 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
   }
 }
 
+resource "random_id" "suffix" {
+  byte_length = 4
+}
+
 # IP set for Rule 1
 resource "aws_wafv2_ip_set" "blocked_ips" {
   name               = "blocked-ips"
   description        = "IP set for blocked IPs"
-  scope              = "REGIONAL"
+  scope              = "CLOUDFRONT"
   ip_address_version = "IPV4"
   addresses          = ["192.0.2.0/24", "198.51.100.0/24"]
 }
@@ -268,7 +272,7 @@ resource "aws_cloudfront_distribution" "static_website_distribution" {
   enabled             = true
   is_ipv6_enabled     = true
   comment             = "Static website distribution"
-  default_root_object = "index.html"
+  default_root_object = "index-waf.html"
 
   default_cache_behavior {
     allowed_methods  = ["GET", "HEAD"]
