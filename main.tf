@@ -93,7 +93,7 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
       sampled_requests_enabled   = false
     }
   }
- 
+
   rule {
     name     = "AWSManagedRulesAnonymousIpList"
     priority = 2
@@ -117,26 +117,26 @@ resource "aws_wafv2_web_acl" "static_website_waf" {
   }
 
   rule {
-  name     = "AWSManagedRulesCommonRuleSet"
-  priority = 3
+    name     = "AWSManagedRulesCommonRuleSet"
+    priority = 3
 
-  override_action {
+    override_action {
       count {}
     }
 
-  statement {
-    managed_rule_group_statement {
-      name        = "AWSManagedRulesCommonRuleSet"
-      vendor_name = "AWS"
+    statement {
+      managed_rule_group_statement {
+        name        = "AWSManagedRulesCommonRuleSet"
+        vendor_name = "AWS"
+      }
+    }
+
+    visibility_config {
+      cloudwatch_metrics_enabled = true
+      metric_name                = "AWSManagedRulesCommonRuleSet"
+      sampled_requests_enabled   = true
     }
   }
-
-  visibility_config {
-    cloudwatch_metrics_enabled = true
-    metric_name                = "AWSManagedRulesCommonRuleSet"
-    sampled_requests_enabled   = true
-  }
-}
 
   rule {
     name     = "AWSManagedRulesKnownBadInputsRuleSet"
